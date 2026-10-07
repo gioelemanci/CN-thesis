@@ -1,0 +1,39 @@
+% === Encoding and language ===
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{microtype}
+
+% === Math packages ===
+\usepackage{amsmath, amssymb, amsthm, mathtools, bm}
+\usepackage{physics, tensor}
+
+% === Layout and formatting ===
+\usepackage{geometry, fancyhdr, float, enumitem, changepage, tocloft}
+\usepackage{xcolor, graphicx, titlesec}
+\usepackage{caption, subcaption}
+\usepackage[toc]{appendix}
+\usepackage{marginnote}
+\usepackage{listings}
+
+% === Hyperlinks and refs ===
+\usepackage{hyperref}
+\usepackage{cleveref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    citecolor=red,
+}
+\usepackage{csquotes}
+\usepackage[
+    backend=bibtex,
+    style=numeric,
+    sorting=none
+]{biblatex}
+\addbibresource{bibliography.bib}
+
+% === Font ===
+\usepackage{lmodern}
+\usepackage{lipsum}

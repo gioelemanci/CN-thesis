@@ -1,0 +1,57 @@
+% === Meta ===
+\renewcommand{\title}{Criticality in Epilepsy: \\A Topological and Functional Analysis of Intracranial Recordings}
+\renewcommand{\author}{Gioele Mancino}
+\newcommand{\professor}{Daniel Remondini}
+\newcommand{\faculty}{Department of Physics and Astronomy "A. Righi"}
+\newcommand{\course}{Theoretical Physics - Complex Networks}
+\newcommand{\academicyear}{2025/2026}
+
+% === TODOs management ===
+\renewcommand*{\marginfont}{\footnotesize\sffamily}
+
+\newwrite\todofile
+\newif\ifshowtodo
+\showtodotrue
+%\showtodofalse
+
+\newcommand{\TODO}[1]{%
+    \ifshowtodo
+        \ifx\todofileopen\undefined
+            \immediate\openout\todofile=todo.txt
+            \global\let\todofileopen\relax
+        \fi
+        \marginnote{\color{red!70!black}\footnotesize
+            \begin{minipage}[t]{2.5cm}
+                \raggedright\textbf{TODO:} #1
+            \end{minipage}%
+        }%
+        \immediate\write\todofile{Page \number\value{page}: #1}%
+    \fi
+}
+
+\AtEndDocument{\ifx\todofileopen\undefined\else\immediate\closeout\todofile\fi}
+
+% === QUESTIONs management ===
+\newwrite\questionfile
+\newif\ifshowquestions
+\showquestionstrue
+%\showquestionsfalse
+
+\newcommand{\QUESTION}[1]{%
+    \ifshowquestions
+        \ifx\questionfileopen\undefined
+            \immediate\openout\questionfile=questions.txt
+            \global\let\questionfileopen\relax
+        \fi
+        \marginnote{\color{blue!70!black}\footnotesize
+            \begin{minipage}[t]{2.5cm}
+                \raggedright\textbf{(?)} #1
+            \end{minipage}%
+        }%
+        \immediate\write\questionfile{Page \number\value{page}: #1}%
+    \fi
+}
+
+\AtEndDocument{\ifx\questionfileopen\undefined\else\immediate\closeout\questionfile\fi}
+
+\newcommand{\bs}[1]{\boldsymbol{\mathcal{#1}}}
