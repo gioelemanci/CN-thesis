@@ -1,0 +1,46 @@
+\section{Notation and Conventions}
+\label{app:notation}
+
+This appendix summarizes the mathematical symbols, signal processing parameters, and graph-theoretical observables adopted throughout the thesis to ensure consistency across the theoretical framework (Chapter~\ref{chap:introduction}), the computational implementation (Chapter~\ref{chap:methods}), and the multiscale empirical analysis (Chapter~\ref{chap:results}).
+
+\subsection{Signal Processing and Temporal Epochs}
+Continuous stereo-electroencephalography (sEEG) recordings are standardized and segmented around the aligned electrophysiological seizure onset ($t = 0\text{ s}$) according to the following conventions:
+
+\begin{itemize}
+    \item $f_s = 1000\text{ Hz}$: Sampling frequency of the raw intracranial voltage recordings.
+    \item $x_i(t) \in \mathbb{R}$: Raw electrical potential recorded at intracranial electrode contact $i$ at continuous time $t$.
+    \item $z_i(t) = (x_i(t) - \mu_i)/\sigma_i$: Channel-wise $z$-score standardized voltage time series over the extracted $240\text{ s}$ transition chunk ($[-120\text{ s}, +120\text{ s}]$), where $\mu_i$ and $\sigma_i$ denote the temporal mean and standard deviation of channel $i$.
+    \item $T = 2.0\text{ s}$, $\Delta \tau = 0.5\text{ s}$: Duration ($2000\text{ samples}$) and step stride ($500\text{ samples}$) of the overlapping sliding windows used for dynamic connectivity estimation, yielding $T_{\text{wins}} = 477$ temporal frames.
+    \item $\tau \in [-119.0\text{ s}, +119.0\text{ s}]$: Discrete time index corresponding to the center of the sliding window $T_\tau = [\tau - T/2, \, \tau + T/2]$.
+    \item $E_{\text{RMS}}(\tau)$: Root-mean-square signal energy averaged across the top $15\%$ most active channels at window $\tau$, used in conjunction with link density to detect the objective electrophysiological onset $\tau^*$.
+    \item $\mathcal{E}_{\text{base}}, \mathcal{E}_{\text{prem}}, \mathcal{E}_{\text{onset}}, \mathcal{E}_{\text{ictal}}$: Calibrated statistical macro-epochs denoting, respectively, the quiet inter-ictal Baseline Epoch ($50\text{ s}$ window prior to $-20\text{ s}$, e.g., $[-84, -34]\text{ s}$ in \texttt{DB470450}), the Premonitory Window ($[-15.0, 0.0]\text{ s}$), the Onset Recruitment Epoch ($[0.0, +15.0]\text{ s}$), and the Established Ictal Epoch ($[+15.0, +60.0]\text{ s}$).
+\end{itemize}
+
+\subsection{Graph Theory and Signed Functional Connectivity}
+At each temporal frame $\tau$, the cerebral recording array is mapped onto an undirected functional network without spatial coordinates:
+
+\begin{itemize}
+    \item $G(\tau) = (V, E(\tau))$: Time-varying graph defined by the node set $V = \{1, \dots, N\}$ and edge set $E(\tau)$.
+    \item $N = |V|$: Total number of valid intracranial sEEG recording contacts after filtering out extracranial auxiliary channels (\texttt{POL}, \texttt{ECG}, \texttt{MK}).
+    \item $\mathbf{W}(\tau) \in [-1, 1]^{N \times N}$: Symmetric, zero-diagonal signed functional connectivity matrix at window $\tau$, where $W_{ij}(\tau)$ is the zero-lag sample Pearson correlation coefficient between channels $i$ and $j$ (with $W_{ii}(\tau) = 0$).
+    \item $W_{ij}^{+}(\tau) = \max(0, W_{ij}(\tau))$: Cooperative (in-phase) weighted connectivity projection used for mesoscopic community detection.
+    \item $\theta \in (0, 1)$, $\theta_{\text{neg}} < 0$: Calibrated positive percolation threshold (typically $\theta \in [0.40, 0.65]$, selected to maintain a sub-critical baseline link density of $\sim 7\%$) and negative anticorrelation threshold ($\theta_{\text{neg}} = -0.35$).
+    \item $\mathbf{A}(\tau) \in \{0, 1\}^{N \times N}$: Binary cooperative adjacency matrix obtained via Heaviside thresholding, $A_{ij}(\tau) = \Theta(W_{ij}(\tau) - \theta)$ for $i \neq j$.
+    \item $D^{+}(\tau), D^{-}(\tau) \in [0, 1]$: Global active link densities quantifying the fraction of node pairs satisfying $W_{ij}(\tau) \geq \theta$ (cooperative synchronization) and $W_{ij}(\tau) \leq \theta_{\text{neg}}$ (competitive anticorrelation), respectively.
+    \item $k_i(\tau) = \sum_{j=1}^N A_{ij}(\tau)$: Binary degree of node $i$ in the cooperative thresholded graph at time $\tau$.
+    \item $s_i(\tau) = \sum_{j=1}^N W_{ij}^{+}(\tau)$: Positive weighted degree (node strength) of contact $i$, with total network weight $m(\tau) = \frac{1}{2}\sum_{i,j} W_{ij}^{+}(\tau)$.
+\end{itemize}
+
+\subsection{Multiscale Topological Observables}
+The critical phase transition across $t = 0\text{ s}$ is tracked across three hierarchical scales using the following order parameters and nodal descriptors:
+
+\begin{itemize}
+    \item $S(\tau) = N_{\text{GCC}}(\tau)/N \in [1/N, 1]$: Macroscopic percolation order parameter, representing the normalized size of the Giant Connected Component ($N_{\text{GCC}}$) of $\mathbf{A}(\tau)$.
+    \item $\chi(\tau) = \text{Var}(k(\tau))$: Topological susceptibility, defined as the spatial variance of the binary node degree distribution $\frac{1}{N}\sum_{i=1}^N (k_i(\tau) - \langle k(\tau) \rangle)^2$ across the network at frame $\tau$.
+    \item $Q(\tau) \in [-1/2, 1]$: Newman's weighted modularity, quantifying the degree of mesoscopic functional segregation of partition $\mathcal{C}(\tau)$ relative to a strength-preserving configuration null model.
+    \item $N_c(\tau) = |\mathcal{C}(\tau)|$: Total number of disjoint functional communities detected at window $\tau$ via the Louvain heuristic algorithm.
+    \item $\bar{W}_i(\tau) = \frac{1}{N-1}\sum_{j \neq i} W_{ij}(\tau)$: Mean signed correlation of node $i$ with the rest of the cortical array.
+    \item $d_i^{(-)}(\tau) = \frac{1}{N-1}\sum_{j \neq i} |\min(0, W_{ij}(\tau))|$: Instantaneous negative decoupling score of contact $i$, measuring the average magnitude of its counter-phase anticorrelations, with premonitory expectation $\langle d_i^{(-)} \rangle_{\text{prem}}$ evaluated over $\tau \in [-15, 0]\text{ s}$.
+    \item $\mathbf{v}_1(\tau) \in [0, 1]^N$: Leading eigenvector centrality vector of the binary cooperative graph $\mathbf{A}(\tau)$ ($\mathbf{A}\mathbf{v}_1 = \lambda_1 \mathbf{v}_1$), normalized via the $L_1$-norm ($\sum_{i=1}^N v_{1,i}(\tau) = 1$).
+    \item $\Delta \bar{v}_{1,i} = \langle v_{1,i} \rangle_{\text{onset}} - \langle v_{1,i} \rangle_{\text{base}}$: Net epoch-averaged eigenvector centrality shift between the Onset Epoch and the Baseline Epoch, plotted against $\langle d_i^{(-)} \rangle_{\text{prem}}$ to construct the 2D Microscopic Node Role Map.
+\end{itemize}

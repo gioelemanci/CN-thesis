@@ -17,3 +17,48 @@
 
 % New page at each new section
 \newcommand{\sectionbreak}{\clearpage}
+
+
+
+
+
+% === Code listings ===
+
+% --- Define colors for code ---
+\definecolor{codebg}{rgb}{0.97, 0.97, 0.98}       % Greyish background for code blocks
+\definecolor{codeframe}{rgb}{0.82, 0.82, 0.85}    % Border color for code blocks
+\definecolor{codegreen}{rgb}{0.15, 0.50, 0.25}    % Green for comments
+\definecolor{codeblue}{rgb}{0.10, 0.35, 0.70}     % Blue for keywords (def, if, for, return)
+\definecolor{codepurple}{rgb}{0.55, 0.15, 0.55}   % Purple for strings
+\definecolor{codenum}{rgb}{0.50, 0.50, 0.50}      % Grey for line numbers
+
+% --- Define the Python code style ---
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codepurple},
+    numberstyle=\tiny\color{codenum},
+    basicstyle=\ttfamily\footnotesize, % Font size for code
+    breakatwhitespace=false,
+    breaklines=true,                   % Go to the next line if the code is too long
+    captionpos=b,                      % Position of the caption (b = bottom)
+    keepspaces=true,                   % Preserve the indentation of Python to the millimeter
+    numbers=left,                      % Numbers of lines on the left
+    numbersep=8pt,                     % Distance of the line numbers from the code
+    showspaces=false,
+    showstringspaces=false,            % Remove the underscore from spaces in strings
+    showtabs=false,
+    tabsize=4,
+    frame=single,                      % Clean frame around the code block
+    rulecolor=\color{codeframe},
+    framesep=4pt,
+    xleftmargin=15pt,                  % Margin on the left of the code block
+    xrightmargin=5pt,
+    aboveskip=12pt,
+    belowskip=12pt,
+    morekeywords={np, as, float64, True, False, None} % Add more keywords if needed
+}
+% --- Set the default style for listings to the defined Python style ---
+\lstset{style=pythonstyle}

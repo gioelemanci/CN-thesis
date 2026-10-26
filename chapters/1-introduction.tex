@@ -1,0 +1,150 @@
+\chapter[Introduction and Physical-Clinical Framework]{Introduction and Physical-\\Clinical Framework}
+\label{chap:introduction}
+
+Epilepsy has historically been conceptualized as a focal disorder originating from an isolated, hyperexcitable cortical region. Over the past two decades, however, clinical neurophysiology and computational neuroscience have undergone a paradigm shift, redefining focal epilepsy as a large-scale network disorder \cite{bartolomei2001dynamical, kramer2010coalescence}. Seizure generation (ictogenesis) and propagation do not merely depend on the intrinsic excitability of a single anatomical locus, but emerge from the collective dynamical interactions among distributed neural populations.
+
+Understanding the mechanisms that drive the sudden transition from physiological background activity to a full-blown seizure requires moving beyond the analysis of single-channel voltage time series. By adopting the mathematical tools of statistical mechanics and graph theory, the brain can be modeled as a complex network of coupled nonlinear oscillators, allowing us to characterize an epileptic seizure as a critical phase transition across multiple topological scales \cite{newman2018networks, bullmore2009complex}.
+
+\section{The Brain as a Critical Complex System}
+\label{sec:brain_critical_system}
+
+The human cerebral cortex is a quintessential complex system composed of billions of neurons interacting through excitatory and inhibitory synaptic pathways across multiple spatial and temporal scales. Under healthy physiological conditions, cortical networks must simultaneously satisfy two competing functional demands: \textit{functional segregation}, which enables specialized information processing within localized neuronal assemblies, and \textit{functional integration}, which coordinates distributed processes into coherent cognitive states \cite{bullmore2009complex}.
+
+A growing body of theoretical and empirical evidence in statistical physics suggests that the healthy brain achieves this optimal trade-off by operating near a critical point—on the boundary of a second-order phase transition between an ordered (quiescent or hypersynchronous) phase and a disordered (random, asynchronous) phase \cite{chialvo2010emergent, beggs2003neuronal}. Operating in this critical regime maximizes the system's dynamic range, susceptibility to external inputs, and information storage capacity, while preventing runaway excitation through a delicate homeostatic balance between synaptic excitation and inhibition.
+
+From the perspective of dynamical systems and statistical mechanics, focal epileptic seizures represent a catastrophic breakdown of this homeostatic criticality, driving the cortical network across a bifurcation into a pathological, supercritical regime of global hypersynchronization \cite{kramer2010coalescence, jiruska2013synchronization}. Clinically, the temporal evolution of a seizure recording is partitioned into distinct dynamical states:
+\begin{itemize}
+    \item \textbf{Inter-ictal (Baseline) State:} Far from a seizure, neuronal populations exhibit low-amplitude, high-complexity fluctuations. Functional interactions remain largely localized within specialized anatomical modules, preventing macroscopic runaway synchronization.
+    \item \textbf{Pre-ictal Transition State:} In the seconds to minutes immediately preceding seizure onset, subtle dynamical shifts destabilize the baseline network. Crucially, neurophysiological studies have demonstrated that seizure onset is frequently preceded not by a gradual build-up of global synchronization, but by a paradoxical \textit{pre-ictal desynchronization} or active functional decoupling \cite{mormann2003epileptic, jiruska2013synchronization}. During this premonitory window, contacts within the putative Seizure Onset Zone (SOZ) functionally detach from the surrounding healthy cortex, often oscillating in counter-phase (anticorrelation) as local inhibitory restraints begin to fail.
+    \item \textbf{Ictal Onset and Propagation:} At the critical transition point ($t = 0$), the decoupled pathological core overcomes surrounding inhibitory barriers—a phenomenon known clinically as the breakdown of the ``inhibitory restraint''—and abruptly recruits adjacent and distant brain regions into high-amplitude, in-phase synchronous discharges \cite{bartolomei2001dynamical}. In physical terms, the system undergoes spontaneous symmetry breaking, collapsing from a high-dimensional, fragmented state into a low-dimensional, macroscopically ordered phase.
+\end{itemize}
+
+Investigating these rapid transitions in human patients requires recording modalities with exceptional temporal and spatial resolution. Non-invasive techniques such as scalp EEG suffer from severe spatial smearing and attenuation due to the skull and cerebrospinal fluid. Consequently, the gold standard for pre-surgical evaluation in drug-resistant focal epilepsy is stereo-electroencephalography (sEEG), an invasive procedure in which multi-contact depth electrodes (shafts) are stereotactically implanted directly into deep and superficial brain structures \cite{bartolomei2001dynamical}. Because sEEG samples the local field potentials (LFPs) of neural populations at millisecond resolution right at the core of the epileptogenic network, it provides an ideal empirical testbed for applying dynamic graph theory to real-world biological phase transitions.
+
+\section{From Time Series to Functional Networks}
+\label{sec:theoretical_framework}
+
+To translate the clinical phenomena of pre-ictal decoupling, modular breakdown, and ictal hypersynchronization into rigorous physical observables, we map the continuous multi-channel sEEG recordings onto the mathematical framework of Complex Network Theory \cite{newman2018networks, barabasi2016network}. Rather than analyzing each intracranial electrode contact as an isolated time series, we treat the set of recorded brain sites as an interacting graph whose collective state is encoded in the time-varying topology of its functional links \cite{bullmore2009complex}. Every graph-theoretical metric introduced below is specifically selected to answer a distinct neurophysiological question across the macroscopic, mesoscopic, and microscopic scales of the seizure transition.
+
+\subsection{Fundamentals of Graph Theory and Signed Dynamic Connectivity}
+Formally, a network is represented as a graph $G = (V, E)$, where $V = \{1, 2, \dots, N\}$ is the set of $N = |V|$ vertices (or nodes) and $E \subseteq V \times V$ is the set of $L = |E|$ edges (or links) representing pairwise interactions between nodes \cite{newman2018networks}. In our neurophysiological context, each node $i \in V$ corresponds to a distinct intracranial sEEG recording contact, while an edge $(i, j) \in E$ represents a functional dependency between the electrical potentials recorded at contacts $i$ and $j$.
+
+While anatomical (structural) brain networks map physical axonal tracts via diffusion imaging, Functional Connectivity (FC) quantifies the statistical interdependence between physiological signals recorded across distributed sites \cite{bullmore2009complex}. Because the transition from the inter-ictal baseline to an epileptic seizure is fundamentally non-stationary, computing a single static connectivity matrix over the entire recording would average out the rapid bifurcations occurring around seizure onset. To resolve the temporal trajectory of the network, we adopt a Dynamic Functional Connectivity (dFC) approach: the continuous multi-channel voltage recordings $x_i(t)$ are segmented into a sequence of overlapping sliding windows of fixed duration $T$ and step size $\Delta \tau$, centered at discrete time instants $\tau$.
+
+Within each temporal window $T_\tau = [\tau - T/2, \, \tau + T/2]$, the pairwise functional coupling between contact $i$ and contact $j$ is measured via the zero-lag sample Pearson correlation coefficient:
+\begin{equation}
+    W_{ij}(\tau) = \frac{\sum_{t \in T_\tau} \left(x_i(t) - \bar{x}_i(\tau)\right)\left(x_j(t) - \bar{x}_j(\tau)\right)}{\sqrt{\sum_{t \in T_\tau} \left(x_i(t) - \bar{x}_i(\tau)\right)^2} \sqrt{\sum_{t \in T_\tau} \left(x_j(t) - \bar{x}_j(\tau)\right)^2}}
+    \label{eq:pearson}
+\end{equation}
+where $\bar{x}_i(\tau) = \frac{1}{|T_\tau|} \sum_{t \in T_\tau} x_i(t)$ is the local temporal mean of channel $i$ inside window $T_\tau$. Since Pearson correlation is invariant under positive linear transformations of the data, $W_{ij}(\tau)$ is bounded within $[-1, 1]$ and measures the degree of linear phase-locking between the two neural populations, normalized by their local signal variance. Self-interactions are excluded by imposing a zero diagonal, $W_{ii}(\tau) = 0$. Across all sliding windows, this procedure yields a three-dimensional, symmetric, signed dynamic connectivity tensor $\mathbf{W} \in [-1, 1]^{T_{\text{wins}} \times N \times N}$, where $W_{ij}(\tau) = W_{ji}(\tau)$.
+
+A central methodological pillar of this study is the \textbf{strict preservation of the algebraic sign} of $W_{ij}(\tau)$. Standard functional connectivity pipelines frequently take the absolute value $|W_{ij}(\tau)|$ prior to graph construction, operating under the simplifying assumption that any high correlation magnitude reflects strong functional coupling. However, from both a physical and neurophysiological standpoint, positive and negative correlations correspond to fundamentally opposing dynamical regimes:
+\begin{itemize}
+    \item \textbf{Cooperative In-Phase Synchronization ($W_{ij}(\tau) > 0$):} Reflects coherent, zero-lag oscillatory alignment between neural populations. This regime drives the pathological coalescence of cortical hubs into a macroscopic syncytium during ictal onset and propagation.
+    \item \textbf{Competitive Counter-Phase Decoupling ($W_{ij}(\tau) < 0$):} Reflects anti-phase dynamics, phase opposition, or active functional detachment between brain regions. Retaining negative correlations is indispensable to test the clinical hypothesis of pre-ictal isolation \cite{mormann2003epileptic, jiruska2013synchronization}: if an epileptogenic focus detaches from the surrounding baseline network by entering a counter-phase oscillatory regime prior to onset, taking $|W_{ij}(\tau)|$ would erroneously conflate this premonitory decoupling with cooperative synchronization.
+\end{itemize}
+Consequently, rather than folding the negative spectrum onto the positive axis, we explicitly decompose the signed tensor $W_{ij}(\tau)$ into cooperative ($W_{ij} > 0$) and competitive ($W_{ij} < 0$) interaction layers, analyzing their global competition and nodal trajectories separately.
+
+\subsection{Macroscopic Scale: Percolation Theory and Critical Susceptibility}
+At the macroscopic scale, our objective is to determine whether the onset of a focal seizure behaves as a collective phase transition, quantifying how localized neural discharges break global symmetry to invade the entire cerebral network. In statistical mechanics and network science, the sudden emergence of macroscopic long-range connectivity across a system as link density increases is described by \textit{percolation theory} \cite{newman2018networks, barabasi2016network}.
+
+To cast our time-varying functional tensor into the framework of bond percolation, we map each continuous correlation matrix $W(\tau)$ into a sparse, unweighted binary graph $G(\tau) = (V, E(\tau))$ described by a symmetric binary Adjacency Matrix $A(\tau) \in \{0, 1\}^{N \times N}$. Because ictal recruitment is driven by cooperative in-phase locking, we apply a strict positive correlation threshold $\theta \in (0, 1)$ via the Heaviside step function $\Theta(\cdot)$:
+\begin{equation}
+    A_{ij}(\tau) = \Theta\!\left(W_{ij}(\tau) - \theta\right) =
+    \begin{cases}
+        1 & \text{if } W_{ij}(\tau) \geq \theta \text{ and } i \neq j \\
+        0 & \text{otherwise}
+    \end{cases}
+    \label{eq:binarization}
+\end{equation}
+Similarly, to monitor the global density of competitive counter-phase links, one can define a negative threshold $\theta_{\text{neg}} < 0$ and track the fraction of pairs satisfying $W_{ij}(\tau) \leq \theta_{\text{neg}}$. Within the cooperative binary graph $A(\tau)$, the local connectivity of contact $i$ is given by its node degree $k_i(\tau)$, which counts the number of active cooperative links incident to node $i$:
+\begin{equation}
+    k_i(\tau) = \sum_{j=1}^{N} A_{ij}(\tau)
+    \label{eq:degree}
+\end{equation}
+and the overall density of active cooperative links in the network at time $\tau$ is given by $D^{+}(\tau) = \frac{1}{N(N-1)} \sum_{i,j} A_{ij}(\tau)$.
+
+In classical percolation theory, as the control parameter (either the threshold $\theta$ or the endogenous neural synchronization dictated by time $\tau$) is varied, the network transitions between two topological regimes \cite{newman2018networks, kramer2010coalescence}:
+\begin{enumerate}
+    \item \textbf{Subcritical (Fragmented) Phase:} During the physiological inter-ictal baseline, strong correlations ($W_{ij} \geq \theta$) are sparse and confined to anatomically adjacent contacts. The graph decomposes into numerous small, mutually disconnected connected components (islands), and the largest component encompasses only a negligible fraction of the total nodes ($N_{\text{GCC}} \ll N$).
+    \item \textbf{Supercritical (Percolating) Phase:} As the seizure onset is crossed, widespread cortical areas lock in phase, causing previously isolated clusters to coalesce rapidly into a single macroscopic \textit{Giant Connected Component} (GCC) that spans a finite, macroscopic fraction of the entire recording array ($N_{\text{GCC}} \sim \mathcal{O}(N)$).
+\end{enumerate}
+
+In direct analogy with the spontaneous magnetization $M$ in the ferromagnetic Ising model, the macroscopic \textbf{order parameter} of the percolation transition is the normalized size of the Giant Connected Component, $S(\tau)$:
+\begin{equation}
+    S(\tau) = \frac{N_{\text{GCC}}(\tau)}{N} \in \left[\frac{1}{N}, \, 1\right]
+    \label{eq:gcc}
+\end{equation}
+where $N_{\text{GCC}}(\tau)$ is the number of nodes belonging to the largest connected subgraph of $G(\tau)$ at window $\tau$.
+
+Furthermore, a hallmark of critical phenomena in statistical mechanics is the divergence (or sharp finite-size peaking) of fluctuations in the vicinity of the critical point. When the cortical network is poised right at the onset bifurcation— transitioning from fragmented clusters to a giant syncytium—nodes exhibit maximal heterogeneity in their connectivity: highly recruited core hubs coexist with still-unrecruited peripheral contacts. We quantify these critical topological fluctuations via the \textbf{topological susceptibility} $\chi(\tau)$, defined as the spatial variance of the binary degree distribution across the $N$ nodes at time $\tau$:
+\begin{equation}
+    \chi(\tau) = \text{Var}\!\left(k(\tau)\right) = \frac{1}{N} \sum_{i=1}^{N} \left(k_i(\tau) - \langle k(\tau) \rangle\right)^2, \quad \text{where } \langle k(\tau) \rangle = \frac{1}{N}\sum_{i=1}^{N} k_i(\tau)
+    \label{eq:susceptibility}
+\end{equation}
+Tracking $S(\tau)$ alongside $\chi(\tau)$ allows us to verify whether seizure onset manifests as a genuine critical percolation transition, marked by a simultaneous jump in the order parameter $S(\tau)$ and a sharp peak in degree fluctuations $\chi(\tau)$.
+
+\subsection{Mesoscopic Scale: Community Structure and Modularity Collapse}
+While macroscopic percolation captures the global coalescence of the network into a giant component, it treats the graph as a homogeneous whole and remains blind to intermediate organizational scales. Crucially, healthy brain networks exhibit a pronounced \textit{mesoscopic} architecture: cortical regions organize into functional modules (or \textit{communities}), characterized by dense internal connections among nodes within the same functional subsystem and sparse connections between nodes belonging to different subsystems \cite{bullmore2009complex, newman2018networks}. This modular segregation prevents local perturbations from cascading uncontrollably across the entire cortex.
+
+From a network dynamics standpoint, we hypothesize that the transition to an epileptic seizure entails a catastrophic breakdown of this mesoscopic segregation: as pathological synchronization spreads, distinct functional communities dissolve and merge into an undifferentiated global cluster. To test this quantitatively without arbitrary binary thresholding, we analyze the positive weighted cooperative network $W_{ij}^{+}(\tau) = \max(0, W_{ij}(\tau))$.
+
+Let $\mathcal{C}(\tau) = \{c_1(\tau), c_2(\tau), \dots, c_N(\tau)\}$ denote a partition of the $N$ nodes into disjoint communities at time window $\tau$, where $c_i(\tau)$ identifies the module to which contact $i$ is assigned. The quality of this partition—and thus the degree of functional segregation of the underlying brain state—is measured by \textbf{Newman's weighted Modularity} $Q(\tau)$ \cite{newman2018networks}:
+\begin{equation}
+    Q(\tau) = \frac{1}{2m(\tau)} \sum_{i=1}^{N} \sum_{j=1}^{N} \left[ W_{ij}^{+}(\tau) - \frac{s_i(\tau) s_j(\tau)}{2m(\tau)} \right] \delta\!\left(c_i(\tau), c_j(\tau)\right)
+    \label{eq:modularity}
+\end{equation}
+where:
+\begin{itemize}
+    \item $s_i(\tau) = \sum_{j=1}^{N} W_{ij}^{+}(\tau)$ is the positive weighted degree (\textit{node strength}) of contact $i$;
+    \item $m(\tau) = \frac{1}{2} \sum_{i,j=1}^{N} W_{ij}^{+}(\tau) = \frac{1}{2} \sum_{i=1}^{N} s_i(\tau)$ is the total weight of all cooperative links in the network;
+    \item $\delta(c_i, c_j)$ is the Kronecker delta function, equal to $1$ if nodes $i$ and $j$ belong to the same community ($c_i = c_j$) and $0$ otherwise.
+\end{itemize}
+
+The physical interpretation of Equation~(\ref{eq:modularity}) lies in the comparison against a statistical null model. The term $P_{ij}(\tau) = \frac{s_i(\tau) s_j(\tau)}{2m(\tau)}$ represents the expected edge weight between node $i$ and node $j$ under the \textit{configuration model}—a randomized null network that preserves the exact strength sequence $\{s_1, \dots, s_N\}$ of the empirical graph but rewires connections uniformly at random \cite{newman2018networks, barabasi2016network}. Thus, $Q(\tau) \in [-1/2, 1]$ measures the excess fraction of intracommunity weight relative to random chance:
+\begin{itemize}
+    \item \textbf{High Modularity ($Q(\tau) \gtrsim 0.3$):} Indicates a strongly segregated mesoscopic architecture in which functional interactions are tightly confined within specialized local modules (typical of the physiological baseline).
+    \item \textbf{Modularity Collapse ($Q(\tau) \to 0$):} Indicates that internal community boundaries have dissolved and connectivity has become globally homogeneous, as expected when the ictal wave merges previously independent subsystems.
+\end{itemize}
+
+Because finding the exact partition $\mathcal{C}(\tau)$ that maximizes $Q(\tau)$ over all possible node assignments is an NP-hard combinatorial optimization problem, we employ the \textbf{Louvain heuristic algorithm} \cite{blondel2008fast}. The Louvain method operates hierarchically by alternating two rapid phases:
+\begin{enumerate}
+    \item \textbf{Local Modularity Optimization:} Starting with each node in its own singleton community ($N$ communities), the algorithm iterates sequentially over all nodes $i \in V$, evaluating the modularity gain $\Delta Q$ obtained by moving node $i$ from its current community into the community of each of its neighbors $j$. Node $i$ is reassigned to the neighbor's community that yields the largest positive gain $\Delta Q > 0$. This sweep is repeated until a local maximum of $Q$ is reached and no single-node move can improve the partition.
+    \item \textbf{Coarse-Graining (Network Aggregation):} The communities identified in the first phase are collapsed into ``super-nodes'' to build a new, reduced weighted network. The edge weight between two super-nodes is given by the sum of all link weights between nodes in the corresponding communities, while intracommunity links become self-loops on the super-nodes. Phase~1 is then re-applied to this coarse-grained graph until modularity converges.
+\end{enumerate}
+Tracking both $Q(\tau)$ and the number of detected communities $N_c(\tau)$ across the transition provides a direct mesoscopic readout of functional unbinding and ictal coalescence.
+
+\subsection{Microscopic Scale: Eigenvector Centrality and Premonitory Decoupling}
+While $S(\tau)$ and $Q(\tau)$ characterize the global and modular state of the brain, clinical epileptology ultimately requires localizing the specific recording contacts that drive the seizure. At the microscopic (nodal) level, however, a single topological metric is insufficient because channels play distinct dynamical roles before and during the phase transition \cite{khambhati2015dynamic}. Specifically, we must mathematically distinguish between: (i) \textit{premonitory decoupling nodes}, which isolate themselves in counter-phase during the pre-ictal window, and (ii) \textit{ictal hub nodes}, which dominate the cooperative Giant Connected Component once the seizure erupts.
+
+To identify the dominant cooperative hubs during seizure onset, simple binary degree $k_i(\tau)$ or strength $s_i(\tau)$ is a naive estimator: a node with moderate degree connected to the core drivers of the seizure exercises far greater dynamical influence over network synchronization than a node connected to an equal number of isolated peripheral contacts. To capture this recursive topological importance, we compute the \textbf{Leading Eigenvector Centrality} $\mathbf{v}_1(\tau)$ of the cooperative adjacency matrix $A(\tau)$ \cite{newman2018networks, khambhati2015dynamic}.
+
+In eigenvector centrality, the centrality score $v_{1,i}(\tau)$ of node $i$ is defined as being proportional to the sum of the scores of its connected neighbors:
+\begin{equation}
+    v_{1,i}(\tau) = \frac{1}{\lambda_1(\tau)} \sum_{j=1}^{N} A_{ij}(\tau) \, v_{1,j}(\tau) \quad \Longleftrightarrow \quad \mathbf{A}(\tau) \mathbf{v}_1(\tau) = \lambda_1(\tau) \mathbf{v}_1(\tau)
+    \label{eq:eigenvector_centrality}
+\end{equation}
+where $\lambda_1(\tau)$ is the largest (leading) real eigenvalue of the symmetric matrix $\mathbf{A}(\tau)$. By the \textit{Perron-Frobenius theorem} for non-negative matrices, the leading eigenvector $\mathbf{v}_1(\tau)$ associated with $\lambda_1(\tau)$ possesses strictly non-negative components ($v_{1,i}(\tau) \geq 0$) and uniquely concentrates its weight on the most densely interconnected core of the Giant Connected Component \cite{newman2018networks}. To ensure that centrality scores represent relative nodal dominance and remain directly comparable across time windows with vastly different total link densities, we normalize $\mathbf{v}_1(\tau)$ at every step using the $L_1$-norm:
+\begin{equation}
+    \sum_{i=1}^{N} v_{1,i}(\tau) = 1
+    \label{eq:l1_norm}
+\end{equation}
+
+Conversely, because eigenvector centrality operates on the positive cooperative graph $A(\tau)$, it cannot see the competitive counter-phase detachment occurring prior to onset. To quantify the clinical hypothesis of pre-ictal functional isolation \cite{mormann2003epileptic, jiruska2013synchronization}, we turn to the negative domain of our signed connectivity tensor $W(\tau)$. For each node $i$ and time window $\tau$, we define its instantaneous \textbf{Negative Decoupling Score} $d_i^{(-)}(\tau)$ as the mean magnitude of its negative (counter-phase) correlations with all other $N-1$ nodes in the network:
+\begin{equation}
+    d_i^{(-)}(\tau) = \frac{1}{N-1} \sum_{j \neq i} \left| \min\!\left(0, \, W_{ij}(\tau)\right) \right| \in [0, 1]
+    \label{eq:decoupling_score}
+\end{equation}
+A high value of $d_i^{(-)}(\tau)$ during the pre-ictal window indicates that contact $i$ is actively oscillating against the global cortical background, detaching itself from physiological homeostasis.
+
+Finally, because instantaneous network metrics computed over short sliding windows ($T \sim 2\text{ s}$) are inevitably subject to stochastic physiological fluctuations, evaluating node roles at arbitrary single time points ($\tau$) would be vulnerable to transient noise spikes. To achieve robust statistical inference, we integrate these microscopic observables over well-defined macro-epochs $\mathcal{E}$ (specifically a quiet pre-ictal \textit{Baseline} epoch $\mathcal{E}_{\text{base}}$, a \textit{Premonitory} window $\mathcal{E}_{\text{prem}}$ immediately preceding $t=0$, and an \textit{Onset} epoch $\mathcal{E}_{\text{onset}}$ immediately following $t=0$). By pairing each channel's epoch-averaged premonitory decoupling score:
+\begin{equation}
+    \langle d_i^{(-)} \rangle_{\text{prem}} = \frac{1}{|\mathcal{E}_{\text{prem}}|} \sum_{\tau \in \mathcal{E}_{\text{prem}}} d_i^{(-)}(\tau)
+    \label{eq:epoch_decoupling}
+\end{equation}
+with its epoch-averaged onset centrality gain over baseline:
+\begin{equation}
+    \Delta \bar{v}_{1,i} = \langle v_{1,i} \rangle_{\text{onset}} - \langle v_{1,i} \rangle_{\text{base}}
+    \label{eq:epoch_centrality_gain}
+\end{equation}
+we establish a noise-resilient, two-dimensional feature space—the \textbf{Microscopic Functional Role Map}—capable of disentangling premonitory seizure initiators from secondary cortical amplifiers.

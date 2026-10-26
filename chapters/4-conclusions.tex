@@ -1,11 +1,34 @@
-\chapter{Conclusions}
+\chapter{Conclusions and Future Perspectives}
 \label{chap:conclusions}
 
 \section{Summary of Findings}
-\lipsum[1-3]
+\label{sec:summary}
 
-\section{Methodological Limitations}
-\lipsum[4-5]
+In this work, we developed and validated a multiscale Complex Network framework to characterize the pre-ictal to ictal transition in human stereo-electroencephalography (sEEG) recordings. By modeling intracranial recording sites as nodes of a time-varying graph and preserving the algebraic sign of the zero-lag Pearson correlation tensor $\mathbf{W}(\tau) \in [-1, 1]^{N \times N}$, we demonstrated that the onset of a focal epileptic seizure can be rigorously described as a critical phase transition across three hierarchical scales:
 
-\section{Future Outlook}
-\lipsum[6-7]
+\begin{itemize}
+    \item \textbf{Macroscopic Scale:} Seizure onset manifests as an abrupt bond percolation transition. When thresholded near the critical boundary ($\theta \in [0.55, 0.65]$), the network transitions discontinuously at $t = 0\text{ s}$ from a fragmented sub-critical regime into a global Giant Connected Component ($S(\tau) \to 1$). Simultaneously, the spatial variance of the degree distribution—the topological susceptibility $\chi(\tau) = \text{Var}(k(\tau))$—exhibits a sharp, threshold-robust critical peak right at the onset bifurcation.
+    \item \textbf{Mesoscopic Scale:} Evaluating Newman's weighted Modularity $Q(\tau)$ via the Louvain algorithm revealed that physiological inter-ictal activity is sustained by a highly segregated architecture ($Q \approx 0.60\text{--}0.80$, $N_c \approx 20\text{--}35$ communities). At $t = 0\text{ s}$, this functional segregation collapses catastrophically ($Q \to 0.16$, $N_c \to 4$), as independent functional modules dissolve into a pathologically integrated syncytium.
+    \item \textbf{Microscopic Scale:} By separating cooperative synchronization ($W_{ij} > 0$) from competitive anticorrelation ($W_{ij} < 0$) and averaging nodal observables over calibrated statistical epochs, we confirmed the clinical hypothesis of pre-ictal functional detachment. Mapping each channel's Premonitory Decoupling Score $\langle d_i^{(-)}\rangle_{\text{prem}}$ against its Onset Eigenvector Centrality Gain $\Delta \bar{v}_{1,i}$ yielded a two-dimensional \textbf{Functional Role Map} that cleanly separates premonitory seizure initiators (e.g., shaft \texttt{S'}), secondary cortical amplifiers (shafts \texttt{K'} and \texttt{Y'}), and persistent counter-phase poles (\texttt{H'6}).
+\end{itemize}
+
+\section{Methodological Limitations and Clinical Scope}
+\label{sec:limitations}
+
+While the proposed topological descriptors successfully capture the dynamical reorganization of the epileptogenic network, it is essential to frame these results within the proper epistemological boundaries of an exploratory study in Physics of Complex Systems:
+
+\begin{enumerate}
+    \item \textbf{Absence of 3D Euclidean Spatial Coordinates:} Throughout this study, the sEEG network was analyzed in a purely functional, topological space without access to the three-dimensional stereotactic coordinates $(x_i, y_i, z_i)$ of the electrode contacts. Consequently, we could not explicitly decouple short-range physiological connectivity driven by spatial proximity and volume conduction from genuine long-range axonal recruitment via an Euclidean distance matrix $D_{ij} = \|\mathbf{r}_i - \mathbf{r}_j\|_2$. Nevertheless, the ability of purely topological metrics ($S, \chi, Q, \mathbf{v}_1$) to isolate contiguous electrode shafts (such as \texttt{S'}, \texttt{K'}, and \texttt{Y'}) demonstrates that intrinsic correlation geometry encodes strong structural information even in the absence of spatial priors.
+    \item \textbf{Retrospective Characterization vs.\ Prospective Seizure Prediction:} Although our 2D Role Map identifies channels that decouple in the $15\text{ s}$ preceding seizure onset, this analysis is inherently retrospective, as the temporal axis is aligned around a known transition point $t = 0\text{ s}$. As observed in our time-series traces, brief inter-ictal epileptiform discharges far from seizure onset (e.g., at $\tau \approx -95\text{ s}$ and $-59\text{ s}$ in \texttt{DB470450}) can trigger transient modularity dips, susceptibility spikes, and counter-phase deflections that mimic early onset dynamics before relaxing back to baseline. Claiming these metrics as a standalone, real-time clinical seizure detector or an automated surgical localization tool would require prospective validation over multi-day continuous recordings to quantify false-positive rates and statistical specificity.
+    \item \textbf{Linear Zero-Lag Approximation:} Zero-lag Pearson correlation captures linear, broadband phase locking but is insensitive to nonlinear cross-frequency coupling and directed causal lag. Therefore, distinguishing whether a decoupled node actively inhibits the surrounding network or passively reflects a phase-inverted dipole requires directed spectral estimators.
+\end{enumerate}
+
+\section{Future Perspectives}
+\label{sec:future}
+
+The methodological pipeline established in this thesis opens several natural avenues for future investigation at the interface of statistical physics and clinical epileptology:
+\begin{itemize}
+    \item \textbf{Spatial Embedding and Contact Map Integration:} Incorporating the MNI or native 3D anatomical coordinates of the sEEG contacts will allow the construction of a hybrid spatio-functional tensor. Partitioning functional links by their physical Euclidean length $D_{ij}$ (e.g., short-range intra-shaft links $D_{ij} < 15\text{ mm}$ vs.\ long-range inter-areal bridges $D_{ij} \geq 15\text{ mm}$) will clarify whether pre-ictal decoupling is a localized micro-circuit phenomenon while ictal percolation is driven by long-range white-matter shortcuts.
+    \item \textbf{Frequency-Band Decomposition and Directed Causality:} Filtering the sEEG signals into canonical neurophysiological bands (particularly high-frequency oscillations and fast gamma activity, $80\text{--}250\text{ Hz}$, which are hallmarks of the Seizure Onset Zone) and replacing symmetric Pearson correlation with directed metrics such as Granger Causality or Transfer Entropy could resolve the causal direction of link recruitment in the 2D Role Map.
+    \item \textbf{Clinical Validation Against Surgical Outcomes:} Finally, systematically comparing the channels identified in the upper-right (Initiators) and upper-left (Amplifiers) quadrants of our Functional Role Map against clinician-annotated Seizure Onset Zones and post-surgical Engel outcomes across a larger patient cohort will provide a definitive test of the translational value of signed network topology.
+\end{itemize}
