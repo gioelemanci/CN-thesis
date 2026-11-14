@@ -1,0 +1,21 @@
+{
+    "cSpell.words": [
+        "arange",
+        "argmax",
+        "corrcoef",
+        "csgraph",
+        "dtype",
+        "eigh",
+        "eigvals",
+        "eigvecs",
+        "keepdims",
+        "linalg",
+        "mmap",
+        "networkx",
+        "numpy",
+        "scipy",
+        "sfreq",
+        "stds",
+        "triu"
+    ]
+}

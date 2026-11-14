@@ -49,7 +49,3 @@ Criticality: Limitations of clinical prediction, strong inter-patient variabilit
 4.2 Methodological limitations of the exploratory study (Absence of spatial coordinates, non-generalizability as a live diagnostic tool).
 
 4.3 Future developments (Integration of contact map, testing on extended clinical cohorts).
-
-## BIBLIOGRAPHY
-
-Articles on pre-ictal decoupling, modularity, brain percolation, and course lecture notes.

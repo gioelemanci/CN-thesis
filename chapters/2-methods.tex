@@ -1,35 +1,45 @@
-\chapter{Materials, Methods, and Computational Implementation}
+\chapter[Materials, Methods and Implementation]{Materials, Methods and \\ Implementation}
 \label{chap:methods}
 
-Translating the theoretical framework of Chapter~\ref{chap:introduction} into a reproducible empirical analysis requires addressing three practical challenges inherent to clinical stereo-electroencephalography (sEEG): (i) the computational overhead of handling high-frequency, multi-channel recordings of several gigabytes; (ii) the contamination of intracranial potentials by extracranial polygraphic artifacts; and (iii) the non-stationarity and inter-patient variability of clinical metadata. This chapter details the dataset structure, the signal preprocessing pipeline, and the core numerical algorithms implemented in Python to extract and calibrate the dynamic functional networks.
+Translating the theoretical framework of Chapter~\ref{chap:introduction} into a feasible empirical analysis requires addressing three practical challenges inherent to clinical stereo-electroencephalography:
+\begin{itemize}
+    \item the computational overhead of handling multi-channel recordings of several gigabytes;
+    \item the contamination of intracranial potentials by extracranial polygraphic artifacts;
+    \item the non-stationarity and inter-patient variability of clinical metadata.
+\end{itemize}
+This chapter details the dataset structure, the signal preprocessing pipeline, and the core numerical algorithms implemented in Python to extract and calibrate the dynamic functional networks.
 
 \section{The sEEG Dataset and Memory-Mapped Extraction}
 \label{sec:dataset_extraction}
 
-The empirical dataset analyzed in this study consists of invasive multi-channel sEEG recordings acquired from patients with drug-resistant focal epilepsy undergoing pre-surgical evaluation. Each recording is stored as a compressed NumPy archive (\texttt{.npz}) containing the continuous voltage matrix $\mathbf{X} \in \mathbb{R}^{N_{\text{raw}} \times M_{\text{tot}}}$, sampled at $f_s = 1000\text{ Hz}$, alongside an array of clinical channel labels and a metadata table specifying the annotated seizure onset time $t_{\text{onset}}$. The number of implanted intracranial contacts per patient ranges between $N \approx 110$ and $170$, distributed across multiple stereotactic depth electrode shafts (typically denoted by alphabetical prefixes such as \texttt{A}, \texttt{B}, \texttt{H}, \texttt{S'}, \texttt{Y'}, where prime symbols indicate left-hemisphere implants).
+The empirical dataset analyzed in this study consists of invasive multi-channel sEEG recordings acquired from patients with drug-resistant focal epilepsy. Each recording is stored as a compressed NumPy archive (\texttt{.npz}) containing the continuous voltage matrix $\mathbf{X} \in \mathbb{R}^{N_{\text{raw}} \times M_{\text{tot}}}$, sampled at $f_s = 1000\text{ Hz}$, alongside an array of clinical channel labels and a metadata table specifying the annotated seizure onset time $t_{\text{onset}}$.
+
+In the raw archives, the total number of recorded traces ranges between $N_{\text{raw}} \approx 170$ and $250$ per patient. However, this raw count includes numerous auxiliary and polygraphic reference channels. The actual number of implanted intracranial contacts, which define the nodes of our functional network, ranges between $N \approx 110$ and $170$ valid channels per patient (typically denoted by alphabetical prefixes such as \texttt{A}, \texttt{B}, \texttt{H}, \texttt{S'}, \texttt{Y'}).
 
 \subsection{Out-of-Core Slicing via Memory Mapping}
-Because continuous clinical monitoring spans hours of activity at kilohertz resolution, loading an entire raw recording array directly into volatile memory (RAM) is computationally inefficient and prone to memory overflow. However, the critical dynamical reorganization governing the transition from the inter-ictal baseline to the ictal state unfolds over a temporal horizon of a few minutes around seizure onset.
+Because continuous clinical monitoring spans hours of activity at kilohertz resolution, loading an entire raw recording array directly into volatile memory (RAM) is computationally inefficient and can lead to memory overflow. However, the critical dynamical reorganization governing the transition from the inter-ictal baseline to the ictal state unfolds over a temporal horizon of a few minutes around seizure onset.
 
 To isolate the phase transition with minimal memory footprint, we access the raw archives in read-only memory-mapped mode (\texttt{mmap\_mode="r"}). This operating system mechanism maps the byte offsets of the uncompressed array directly onto virtual address space without transferring the full file into RAM. Given the aligned seizure onset timestamp $t_{\text{onset}}$, we slice a symmetric $240\text{ s}$ transition window spanning $\Delta t_{\text{pre}} = 120\text{ s}$ prior to onset and $\Delta t_{\text{post}} = 120\text{ s}$ following onset, shifting the temporal axis so that $t = 0\text{ s}$ corresponds exactly to the transition point.
 
 \subsection{Artifact Channel Filtering and Channel-Wise Standardization}
-A crucial preprocessing step involves cleaning the node set $V$ from non-cerebral recording channels. Clinical sEEG systems routinely record auxiliary polygraphic channels alongside intracranial depth electrodes, labeled with prefixes such as \texttt{POL} (polygraphy/polarity references), \texttt{ECG} (electrocardiogram), or \texttt{MK} (event markers). During the pre-ictal and ictal phases, autonomic changes (e.g., ictal tachycardia) and subtle patient motor activity generate high-amplitude, low-frequency electrical fluctuations on these extracranial channels. If retained in the graph, such signals exhibit strong spurious anticorrelations with cortical activity, falsely appearing as decoupled network hubs. We therefore programmatically filter out all non-intracranial labels prior to network construction.
+Clinical sEEG systems routinely record auxiliary polygraphic channels alongside intracranial depth electrodes, labeled with prefixes such as \texttt{POL} (polygraphy/polarity references), \texttt{ECG} (electrocardiogram), or \texttt{MK} (event markers). During the pre-ictal and ictal phases, autonomic changes and even subtle patient motor activity can generate high-amplitude electrical fluctuations on these extracranial channels.
 
-Subsequently, because electrode impedance and local tissue conductivity vary across recording sites, raw voltage amplitudes cannot be compared directly without normalization. Each retained intracranial channel $i \in \{1, \dots, N\}$ is independently standardized over the extracted $240\text{ s}$ chunk via a channel-wise $z$-score transformation:
+If retained in the graph, such signals may exhibit strong (anti-)correlations with cortical activity, leading to false positives in network analysis. We therefore filter out all non-intracranial labels prior to network construction. Subsequently, because electrode impedance and local tissue conductivity vary across recording sites, raw voltage amplitudes cannot be compared directly without normalization.
+
+Each retained intracranial channel $i \in \{1, \dots, N\}$ is independently standardized over the extracted $240\text{ s}$ chunk via a channel-wise $z$-score transformation:
 \begin{equation}
     z_i(t) = \frac{x_i(t) - \mu_i}{\sigma_i}
     \label{eq:zscore}
 \end{equation}
-where $\mu_i$ and $\sigma_i$ denote the temporal mean and standard deviation of channel $i$ across the extracted transition window. The core Python implementation of this memory-mapped extraction, channel filtering, and standardization procedure is shown below:
+where $\mu_i$ and $\sigma_i$ denote the temporal mean and standard deviation of channel $i$ across the extracted transition window. The core Python implementation is shown below:
 
 \begin{lstlisting}[language=Python, caption={Memory-mapped transition window extraction, extracranial channel filtering, and channel-wise $z$-score normalization.}]
 def extract_transition_chunk(file_path, onset_sec, pre_sec=120.0, post_sec=120.0):
     # Access large archive on disk without loading full array into RAM
     data = np.load(file_path, mmap_mode="r")
-    sfreq = float(data["sfreq"]) if "sfreq" in data.files else 1000.0
+    sfreq = float(data["sfreq"])
     signal_arr = data[data.files[0]]
-    channel_names = data["channels"] if "channels" in data.files else np.array([])
+    channel_names = data["channels"]
 
     if signal_arr.shape[0] > signal_arr.shape[1]:
         signal_arr = signal_arr.T  # Enforce (N_channels, N_samples)
@@ -62,11 +72,11 @@ def extract_transition_chunk(file_path, onset_sec, pre_sec=120.0, post_sec=120.0
 \section{Sliding-Window Tensor Construction}
 \label{sec:tensor_construction}
 
-To track the non-stationary topological evolution of the sEEG network across the $240\text{ s}$ window, the standardized signal matrix $\mathbf{Z} \in \mathbb{R}^{N \times M}$ is partitioned into overlapping sliding windows of fixed duration $T = 2.0\text{ s}$ ($2000\text{ samples}$) and step size $\Delta \tau = 0.5\text{ s}$ ($500\text{ samples}$). This parameterization yields a total of $T_{\text{wins}} = 477$ temporal frames centered at $\tau \in [-119.0\text{ s}, +119.0\text{ s}]$.
+To track the non-stationary topological evolution of the sEEG network across the $240\text{ s}$ window, the standardized signal matrix $\mathbf{Z} \in \mathbb{R}^{N \times M}$ is partitioned into overlapping sliding windows of fixed duration $T = 2.0\text{ s}$ ($2000\text{ samples}$) and step size $\Delta \tau = 0.5\text{ s}$ ($500\text{ samples}$). This parameterization yields a total of $N_\text{wins} = 477$ temporal frames centered at $\tau \in [-119.0\text{ s}, +119.0\text{ s}]$.
 
-The choice of $T = 2.0\text{ s}$ represents an optimal physical trade-off between statistical stability and temporal resolution: a $2000$-sample window is sufficiently long to provide robust estimation of zero-lag Pearson correlations across physiological frequency bands (from delta to high-gamma), while a $0.5\text{ s}$ stride resolves rapid pre-ictal decoupling and onset recruitment dynamics.Crucially, both $T$ and $\Delta \tau$ are held strictly constant across all patients to ensure that the variance of the sample correlation estimator remains invariant across the cohort.
+The choice of $T = 2.0\text{ s}$ represents an optimal physical trade-off between statistical stability and temporal resolution: a $2000$-sample window is sufficiently long to provide robust estimation of zero-lag Pearson correlations, while a $0.5\text{ s}$ stride resolves rapid pre-ictal decoupling and onset recruitment dynamics. Crucially, both $T$ and $\Delta \tau$ are held strictly constant across all patients to ensure that the variance of the sample correlation estimator remains invariant across the cohort.
 
-Within each window $T_\tau$, we compute the signed Pearson correlation matrix $\mathbf{W}(\tau) \in [-1, 1]^{N \times N}$ according to Equation~(\ref{eq:pearson}), setting the diagonal elements to zero ($W_{ii}(\tau) = 0$) and clipping numerical floating-point inaccuracies to $[-1.0, 1.0]$. As established in Section~\ref{sec:theoretical_framework}, no absolute value transformation is applied, preserving the algebraic distinction between cooperative in-phase links ($W_{ij} > 0$) and competitive counter-phase links ($W_{ij} < 0$).
+Within each window $T_\tau$, we compute the signed Pearson correlation matrix $\mathbf{W}(\tau) \in [-1, 1]^{N \times N}$ according to Equation~(\ref{eq:pearson}), setting the diagonal elements to zero ($W_{ii}(\tau) = 0$) and clipping numerical floating-point inaccuracies to $[-1.0, 1.0]$. As established in Section~\ref{sec:theoretical_framework}, no absolute value transformation is applied, preserving the distinction between cooperative in-phase links ($W_{ij} > 0$) and competitive counter-phase links ($W_{ij} < 0$).
 
 \begin{lstlisting}[language=Python, caption={Sliding-window computation of the signed dynamic functional connectivity tensor $\mathbf{W}(\tau)$.}]
 def compute_dynamic_functional_connectivity(signal, sfreq, window_sec=2.0, step_sec=0.5):
@@ -91,37 +101,74 @@ def compute_dynamic_functional_connectivity(signal, sfreq, window_sec=2.0, step_
 \section{Data-Driven Calibration and Statistical Epochs}
 \label{sec:calibration_epochs}
 
-Applying network analysis to clinical recordings across multiple subjects introduces three fundamental methodological challenges:
-\begin{itemize}
-    \item[(i)] clinical onset timestamps annotated in hospital records often reflect the appearance of behavioral symptoms (\textit{clinical onset}) rather than the deep intracranial onset of synchronous discharges (\textit{electrophysiological onset});
-    \item[(ii)] baseline functional connectivity density varies across patients due to individual differences in electrode implantation geometry;
-    \item[(iii)] evaluating nodal metrics at single time frames is highly sensitive to transient inter-ictal spikes.
-\end{itemize}
-We address each of these factors through objective, data-driven calibration criteria.
+Applying network analysis across multiple clinical sEEG recordings requires addressing three methodological challenges widely documented in the brain network literature:
+\begin{enumerate}
+    \item[(i)] \textbf{Clinical vs.\ Electrophysiological Onset Lag:} Hospital metadata frequently annotate the appearance of behavioral symptoms (\textit{clinical onset}) rather than the deep intracranial initiation of synchronous discharges (\textit{electrophysiological onset}) \cite{bartolomei2001dynamical, schindler2007assessing};
+    \item[(ii)] \textbf{Implantation Density and Threshold Scaling:} Comparing graphs across subjects using a fixed correlation threshold introduces systematic bias when baseline connectivity density varies due to electrode implantation geometry \cite{vanwijk2010comparing, bullmore2009complex};
+    \item[(iii)] \textbf{Inter-Ictal Spikes and Frame-to-Frame Noise:} Subclinical inter-ictal epileptiform discharges (IEDs) during the pre-ictal period produce transient synchronization bursts that can corrupt baseline reference windows and single-frame estimates \cite{mormann2007seizure, jiruska2013synchronization}.
+\end{enumerate}
+Following established practices in functional network analysis, we address these factors through empirical standardization criteria prior to computing multiscale metrics.
 
 \subsection{Electrophysiological Onset Alignment}
-Upon inspecting the raw signals and preliminary connectivity traces across the dataset, notable discrepancies emerged between the nominal metadata timestamps and the actual dynamical bifurcation in specific recordings (where the macroscopic surge in synchronization occurred several seconds away from the nominal marker). Because evaluating pre-ictal metrics in a window $[-15, 0]\text{ s}$ requires $t = 0\text{ s}$ to mark the exact point of symmetry breaking, relying on delayed clinical annotations would erroneously contaminate the premonitory window with early ictal discharges.
+\label{subsec:onset_alignment}
+In invasive sEEG monitoring, the earliest intracranial signature of a focal seizure often precedes clinical manifestations by several seconds \cite{bartolomei2001dynamical}. Because evaluating premonitory metrics in $[-15, 0]\text{ s}$ requires $t = 0\text{ s}$ to coincide with the exact point of intracranial symmetry breaking, relying on delayed clinical timestamps would contaminate the pre-ictal window with early seizure discharges.
 
-To establish an objective, operator-independent definition of $t = 0\text{ s}$, we implemented an automated transition detector that scans the recording for the point of maximum upward gradient in both signal energy and network synchronization. Specifically, at each sliding window $\tau$, we compute:
-\begin{enumerate}
-    \item \textbf{Core Signal Energy $E_{\text{RMS}}(\tau)$:} The root-mean-square (RMS) voltage amplitude averaged across the top $15\%$ most active channels in window $\tau$, capturing the sudden physical surge in local field potential variance generated by hypersynchronous neuronal firing in the Seizure Onset Zone.
-    \item \textbf{Global Cooperative Density $D^{+}_{0.5}(\tau)$:} The fraction of node pairs exhibiting strong in-phase correlation $W_{ij}(\tau) \geq 0.50$.
-\end{enumerate}
-Both profiles are min-max normalized to $[0, 1]$ and averaged into a composite transition signal $\Phi(\tau) = \frac{1}{2}\hat{E}_{\text{RMS}}(\tau) + \frac{1}{2}\hat{D}^{+}_{0.5}(\tau)$. The true electrophysiological onset $\tau^*$ is then identified as the argument maximizing the forward-backward step derivative over a $\Delta H = 6.0\text{ s}$ horizon:
+Following energy- and correlation-based onset detection approaches \cite{bartolomei2001dynamical, schindler2007assessing}, we align $t = 0\text{ s}$ by locating the sharpest upward step transition in both signal amplitude and network synchronization across a broad search window ($\pm 240\text{ s}$ around the nominal marker, accessed via \texttt{mmap\_mode="r"}). At each step $\tau$, we compute the root-mean-square voltage amplitude $E_{\text{RMS}}(\tau)$ across the top $15\%$ most active channels (capturing focal amplitude surges) and the reference cooperative link density $D^{+}_{0.50}(\tau)$ (fraction of pairs with $W_{ij}(\tau) \geq 0.50$). Both profiles are min-max normalized to $[0, 1]$ and averaged into a composite trace $\Phi(\tau) = \frac{1}{2}\hat{E}_{\text{RMS}}(\tau) + \frac{1}{2}\hat{D}^{+}_{0.50}(\tau)$. The electrophysiological onset $\tau^*$ is then identified via a moving-average step detector over a $\Delta H = 5.0\text{ s}$ ($10$-frame) horizon:
 \begin{equation}
-    \tau^* = \arg\max_{\tau} \left[ \frac{1}{\Delta H} \int_{\tau}^{\tau + \Delta H} \Phi(t)\,dt - \frac{1}{\Delta H} \int_{\tau - \Delta H}^{\tau} \Phi(t)\,dt \right]
+    \tau^* = \arg\max_{\tau} \left( \langle \Phi(t) \rangle_{t \in [\tau, \, \tau + \Delta H]} - \langle \Phi(t) \rangle_{t \in [\tau - \Delta H, \, \tau]} \right)
     \label{eq:onset_detector}
 \end{equation}
-Integrating over a $6.0\text{ s}$ horizon acts as a low-pass filter on the derivative: brief, isolated inter-ictal spikes (lasting $< 1\text{ s}$) cancel out, whereas the sustained step transition into the ictal state produces a sharp global maximum, aligning $t = 0\text{ s}$ accurately across all recordings.
+Averaging over $5.0\text{ s}$ filters out brief inter-ictal spikes ($1\text{--}2\text{ s}$), whereas the sustained step transition into the seizure produces a clear global maximum $\tau^*$, defining the aligned origin $t = 0\text{ s}$.
 
-\subsection{Sub-Critical Threshold Calibration and Statistical Epochs}
-In percolation analysis, applying an arbitrary universal threshold $\theta$ across patients with different implantation densities can distort topological comparisons: a recording with densely spaced contacts may already exhibit a percolating giant component during resting state at $\theta = 0.50$, whereas a sparse implant may remain overly fragmented. Following percolation theory, we calibrate $\theta \in \{0.45, 0.50, 0.55, 0.60, 0.65\}$ for each subject using an objective baseline criterion: $\theta$ is selected so that the cooperative network during the quiet inter-ictal baseline resides right at the boundary of the sub-critical regime, defined by a mean positive edge density of $D^{+}_{\text{base}}(\theta) \approx 6\%\text{--}8\%$.
+\subsection{Fixed-Density Sub-Critical Threshold Calibration}
+\label{subsec:threshold_calibration}
+As shown by Van Wijk et al.\ \cite{vanwijk2010comparing} and Bullmore \& Sporns \cite{bullmore2009complex}, applying a single universal threshold $\theta$ across subjects with different spatial sampling densities confounds topological comparisons: densely spaced implants may already percolate ($S(\tau) \approx 1$) during resting state at $\theta = 0.50$, whereas sparser implants remain fragmented. To ensure cross-patient comparability, we adopt \textit{fixed edge-density calibration} \cite{vanwijk2010comparing}, selecting $\theta$ individually so that all baseline networks share a comparable sub-critical sparsity.
 
-Finally, rather than comparing node centralities at arbitrary single snapshots, we partition the aligned temporal axis $\tau \in [-120\text{ s}, +120\text{ s}]$ into four functionally distinct statistical epochs:
+Specifically, we evaluate a discrete grid $\theta \in \{0.45, 0.50, 0.55, 0.60, 0.65, 0.70\}$ on each pre-extracted chunk and select the threshold whose mean cooperative link density during the quiet baseline matches $D^{+}_{\text{base}}(\theta) \approx 7.0\%$ (within the canonical $5\%\text{--}10\%$ sparse regime \cite{bullmore2009complex}). Analogously, for visualizing global negative density $D^{-}(\tau)$, we select $\theta_{\text{neg}} \in \{-0.30, -0.35, -0.40, -0.45\}$ to match a baseline anticorrelation density of $\sim 4.5\%$.
+
+\subsection{Spike-Free Baseline Selection and Statistical Epochs}
+\label{subsec:statistical_epochs}
+To prevent subclinical inter-ictal bursts from biasing reference values \cite{mormann2007seizure, jiruska2013synchronization}, nodal observables in Act~III are averaged over four temporal macro-epochs:
 \begin{enumerate}
-    \item \textbf{Quiet Baseline Epoch ($\mathcal{E}_{\text{base}}$, typically $[-90, -20]\text{ s}$):} A $50\text{--}70\text{ s}$ reference window selected prior to $\tau = -20\text{ s}$ by minimizing a cost function of mean synchronization and RMS variance, thereby automatically avoiding isolated pre-ictal bursts.
-    \item \textbf{Premonitory Window ($\mathcal{E}_{\text{prem}} = [-15.0, 0.0]\text{ s}$):} The immediate pre-onset interval where active counter-phase decoupling $\langle d_i^{(-)} \rangle_{\text{prem}}$ is evaluated to test for pre-ictal isolation of the epileptogenic focus.
-    \item \textbf{Onset Recruitment Epoch ($\mathcal{E}_{\text{onset}} = [0.0, +15.0]\text{ s}$):} The early ictal bifurcation window over which leading eigenvector centrality $\langle v_{1,i} \rangle_{\text{onset}}$ is averaged to identify the primary hub drivers of the Giant Connected Component.
-    \item \textbf{Established Ictal Epoch ($\mathcal{E}_{\text{ictal}} = [+15.0, +60.0]\text{ s}$):} The fully developed seizure propagation phase.
+    \item \textbf{Quiet Baseline Epoch ($\mathcal{E}_{\text{base}}$, $50\text{ s}$ window within $[-115, -20]\text{ s}$):} Selected automatically by scanning contiguous $50\text{ s}$ ($100$-frame) intervals and minimizing an empirical variability score ($\mu_{D^+} + 2.5\,\sigma_{D^+} + 5.0\,\sigma_{\text{RMS}}$) to avoid isolated pre-ictal spikes (such as the burst at $\tau \approx -95\text{ s}$ in \texttt{DB470450}).
+    \item \textbf{Premonitory Window ($\mathcal{E}_{\text{prem}} = [-15.0, 0.0]\text{ s}$):} Immediate pre-onset horizon over which counter-phase decoupling $\langle d_i^{(-)} \rangle_{\text{prem}}$ is averaged \cite{mormann2003epileptic, jiruska2013synchronization}.
+    \item \textbf{Onset Recruitment Epoch ($\mathcal{E}_{\text{onset}} = [0.0, +15.0]\text{ s}$):} Early recruitment window over which eigenvector centrality $\langle v_{1,i} \rangle_{\text{onset}}$ is averaged to identify primary onset hubs.
+    \item \textbf{Established Ictal Epoch ($\mathcal{E}_{\text{ictal}} = [+15.0, +60.0]\text{ s}$):} Mature seizure propagation phase.
 \end{enumerate}
-Computing microscopic node scores as statistical expectations over these epochs suppresses stochastic frame-to-frame fluctuations and guarantees robust role identification.
+At a step of $\Delta \tau = 0.5\text{ s}$, each $15\text{ s}$ window ($\mathcal{E}_{\text{prem}}$ and $\mathcal{E}_{\text{onset}}$) averages $30$ consecutive frames, suppressing single-frame noise while remaining localized around $t = 0\text{ s}$.
+
+\begin{lstlisting}[language=Python, caption={Step-gradient onset alignment and fixed-density baseline/threshold calibration.}, label={lst:calibration}]
+def estimate_automatic_onset(abs_times, rms_energy, pos_sync, horizon_sec=5.0):
+    # Min-max normalize energy and sync density to [0, 1]
+    rms_norm = (rms_energy - np.min(rms_energy)) / (np.ptp(rms_energy) + 1e-8)
+    sync_norm = (pos_sync - np.min(pos_sync)) / (np.ptp(pos_sync) + 1e-8)
+    combined = 0.5 * rms_norm + 0.5 * sync_norm
+
+    # Step difference between 5s post-window and 5s pre-window
+    dt = abs_times[1] - abs_times[0] if len(abs_times) > 1 else 0.5
+    h = max(1, int(horizon_sec / dt))
+    jump_score = np.zeros_like(combined)
+    for i in range(h, len(combined) - h):
+        jump_score[i] = np.mean(combined[i : i + h]) - np.mean(combined[i - h : i])
+
+    return abs_times[int(np.argmax(jump_score))], jump_score
+
+def select_quiet_baseline_and_threshold(times, pos_densities, rms_energy):
+    # 1. Scan [-115s, -20s] for the most stationary 50s (100-frame) baseline window
+    win_len = int(50.0 / (times[1] - times[0]))
+    pre_idx = np.where((times >= -115.0) & (times <= -20.0))[0]
+    sync_ref = pos_densities[0.50]
+
+    best_base, min_cost = (-90.0, -20.0), float("inf")
+    for s in range(pre_idx[0], pre_idx[-1] - win_len + 1):
+        seg_s, seg_r = sync_ref[s : s + win_len], rms_energy[s : s + win_len]
+        cost = np.mean(seg_s) + 2.5 * np.std(seg_s) + 5.0 * np.std(seg_r)
+        if cost < min_cost:
+            min_cost = cost
+            best_base = (round(float(times[s]), 0), round(float(times[s + win_len]), 0))
+
+    # 2. Fixed-density calibration: select threshold closest to ~7.0% baseline sparsity
+    mask = (times >= best_base[0]) & (times <= best_base[1])
+    best_th = min(pos_densities.keys(), key=lambda th: abs(np.mean(pos_densities[th][mask]) - 7.0))
+    return best_base, best_th
+\end{lstlisting}
